@@ -22,12 +22,12 @@ class Productos(BaseModel):
 #ENDPOINTS
 #LISTAR PRODUCTOS
 @app.get("/productos")
-async def productos(user: UserDB = Depends(auth_user)):
+async def productos():
     return productos_schema(db_client.local.productos.find())
 
 #CREAR PRODUCTOS
 @app.post("/productos")
-async def producto(producto : Productos):
+async def producto(producto : Productos, user: UserDB = Depends(auth_user)):
     if type (buscardb("nombre",producto.nombre)) == Productos:
        raise HTTPException(status_code=400, detail="Ya hay productos con ese nombre.")
     
@@ -42,7 +42,7 @@ async def producto(producto : Productos):
 
 #ELIMINAR PRODUCTOS
 @app.delete("/productos/{id}")
-async def producto(id : str):
+async def producto(id : str, user: UserDB = Depends(auth_user)):
 
     found = db_client.local.productos.find_one_and_delete({"_id": ObjectId(id)})
 
@@ -53,7 +53,7 @@ async def producto(id : str):
 
 # ACTUALIZAR PRODUCTOS
 @app.put("/productos")
-async def actualizar_producto(producto: Productos):
+async def actualizar_producto(producto: Productos, user: UserDB = Depends(auth_user)):
     producto_dict = dict(producto)
     del producto_dict["id"]
 
@@ -91,7 +91,7 @@ async def ordenar_productos(orden: str):
 
 # BORRAR PRODUCTOS POR CATEGORÍA
 @app.delete("/productos/categoria/{categoria}/eliminar")
-async def productos_por_categoria(categoria: str):
+async def productos_por_categoria(categoria: str, user: UserDB = Depends(auth_user)):
     db_client.local.productos.delete_many({"categoria":categoria})
     return {"Bien" : f"Se eliminaron los productos de la categoria {categoria}"}
     

@@ -10,7 +10,7 @@ from schemas.users import user_schema, users_schema
 
 router = APIRouter()
 ALGORITHM = "HS256"
-ACCES_TOKEN_DURATION = 1
+ACCES_TOKEN_DURATION = 5
 SECRET = "183c0ed4e2210e4c3ff66c0d0227ea362592cf2dfb4bb1e58f375b3ddfbef3c5"
 oauth2 = OAuth2PasswordBearer(tokenUrl="login")
 
