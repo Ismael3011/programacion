@@ -4,59 +4,67 @@ from datetime import datetime, timedelta, date, time
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-
-app = FastAPI()
+from db.client import db_client
+from schemas.productos import producto_schema, productos_schema
+from bson import ObjectId
 
 class Productos(BaseModel):
-    id : int
+    id : str | None
     nombre : str
     descripcion : str
     precio : float
     categoria : str
     stock : int
 
-productos_list = [Productos(id=1,nombre="Camiseta de algodón", descripcion= "Camiseta de manga corta", precio= 15.99, categoria= "Ropa", stock=100), 
-                  Productos(id=2,nombre="Sudadera", descripcion= "Sudaderra con capucha", precio= 25.99, categoria= "Ropa", stock=90), ]
+app = FastAPI()
 
 #LISTAR PRODUCTOS
 @app.get("/productos")
 async def productos():
-    return productos_list
+    return productos_schema(db_client.local.productos.find())
 
 #CREAR PRODUCTOS
 @app.post("/productos")
 async def producto(producto : Productos):
-    if type (product_search(producto.id)) == Productos:
-        raise HTTPException(status_code=400, detail="Ya hay productos con esa ID.")
-    else :
-        productos_list.append(producto)
-        return producto
+    if type (buscardb("nombre",producto.nombre)) == Productos:
+       raise HTTPException(status_code=400, detail="Ya hay productos con ese nombre.")
+    
+    producto_dict = dict(producto)
+    del producto_dict["id"]
+
+    id = db_client.local.productos.insert_one(producto_dict).inserted_id
+
+    new_producto = producto_schema(db_client.local.productos.find_one({"_id" : id}))
+
+    return Productos(**new_producto)
 
 #ELIMINAR PRODUCTOS
 @app.delete("/productos/{id}")
-async def producto(id : int):
-    found = False
+async def producto(id : str):
 
-    for index, saved_product in enumerate(productos_list):
-        if saved_product.id == id:
-            del productos_list[index]
-            found = True
-            return {"Bien" : "Se eliminó correctamente"}
+    found = db_client.local.productos.find_one_and_delete({"_id": ObjectId(id)})
+
     if not found:
         raise HTTPException(status_code=400, detail="No hay usuarios con esa ID para eliminar.")
+    
+    return {"Bien" : "Se eliminó el prodcuto."}
 
 # ACTUALIZAR PRODUCTOS
-@app.put("/productos/{id}")
-async def actualizar_producto(id: int, producto: Productos):
-    for index, saved_product in enumerate(productos_list):
-        if saved_product.id == id:
-            productos_list[index] = producto
-            return producto
-    raise HTTPException(status_code=404, detail="Producto no encontrado para actualizar.")
+@app.put("/productos")
+async def actualizar_producto(producto: Productos):
+    producto_dict = dict(producto)
+    del producto_dict["id"]
+
+    try:
+        db_client.local.productos.find_one_and_replace(
+            {"_id" : ObjectId(producto.id)}, producto_dict)
+    except:
+        return{"Error" : "No se encotró el producto"}
+    return buscardb("_id", ObjectId(producto.id))
 #BUSCAR POR ID
 @app.get("/productos/{id}")
-async def producto(id :int):
-    return product_search(id)
+async def producto(id :str):
+    return buscardb("_id", ObjectId(id))
 
 #BUSCAR POR NOMBRE
 @app.get("/buscar")
@@ -122,3 +130,11 @@ def product_search_name(nombre: str):
         return {"error":"No se ha encontrado el producto"}
     else:
         return list(productos)
+    
+def buscardb(field : str, key):
+    try:
+        producto = db_client.local.productos.find_one({field : key})
+        return Productos(**producto_schema(producto))
+    except :
+        return {"error" : "No se encontró el usuario"}
+    
