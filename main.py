@@ -4,7 +4,7 @@ from db.client import db_client
 from schemas.productos import producto_schema, productos_schema
 from bson import ObjectId
 from routers import users
-from routers.users import auth_user
+from routers.users import auth_user, UserDB
 
 app = FastAPI()
 
@@ -22,7 +22,7 @@ class Productos(BaseModel):
 #ENDPOINTS
 #LISTAR PRODUCTOS
 @app.get("/productos")
-async def productos():
+async def productos(user: UserDB = Depends(auth_user)):
     return productos_schema(db_client.local.productos.find())
 
 #CREAR PRODUCTOS
