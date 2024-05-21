@@ -69,72 +69,47 @@ async def producto(id :str):
 #BUSCAR POR NOMBRE
 @app.get("/buscar")
 async def producto(nombre :str):
-    return product_search_name(nombre)
+    return buscardb("nombre", nombre)
 
 # BUSCAR PRODUCTOS POR CATEGORÍA
 @app.get("/productos/categoria/{categoria}")
 async def productos_por_categoria(categoria: str):
-    resultados = []
-    for product in productos_list:
-        if categoria.lower() in product.categoria.lower():
-            resultados.append(product)
-    if len(resultados) == 0:
-        raise HTTPException(status_code=404, detail="No se encontraron productos en esa categoría")
-    else:
-        return list(resultados)
+    return buscardb_categoria("categoria", categoria)
     
 # ORDENAR PRODUCTOS POR PRECIO
 @app.get("/ordenar")
 async def ordenar_productos(orden: str):
     if orden == "ascendente":
-        productos_ordenados = sorted(productos_list, key=lambda x: x.precio)
+        ordenados = db_client.local.productos.find().sort("precio", 1)
     elif orden =="descendente":
-        productos_ordenados = sorted(productos_list, key=lambda x: x.precio, reverse=True)
+        ordenados = db_client.local.productos.find().sort("precio", -1)
     else:
         raise HTTPException(status_code=400, detail="El orden debe ser ascendente o descendente.")
-    return productos_ordenados
+    return productos_schema(ordenados)
 
 # BORRAR PRODUCTOS POR CATEGORÍA
 @app.delete("/productos/categoria/{categoria}/eliminar")
 async def productos_por_categoria(categoria: str):
-    global productos_list
-    cont = 0
-    listanueva = []
-    for index, product in enumerate(productos_list):
-        if categoria.lower() in product.categoria.lower():
-            cont+=1
-        else:
-            listanueva.append(productos_list[index])
-
-    if cont == 0:
-        raise HTTPException(status_code=404, detail="No hay productos de esa categoria para eliminar.")
-    else:
-        productos_list = listanueva
-        return {"Bien" : "Se eliminaros los productos de esa categoria."}
+    db_client.local.productos.delete_many({"categoria":categoria})
+    return {"Bien" : f"Se eliminaron los productos de la categoria {categoria}"}
+    
     
 #FUNCIONES DE AYUDA
-#BUSQUEDA DE PRODUCTOS
-def product_search(id: int):
-    productos = filter(lambda producto: producto.id==id, productos_list)
-    try:
-        return list(productos)[0]
-    except:
-        return {"error":"No se ha encontrado el producto"}
-#BUSQUEDA DE PRODUCTOS POR NOMBRE
-def product_search_name(nombre: str):
-    productos = []
-    for product in productos_list:
-        if nombre.lower() in product.nombre.lower():
-            productos.append(product)
-    if len(productos)==0:
-        return {"error":"No se ha encontrado el producto"}
-    else:
-        return list(productos)
-    
 def buscardb(field : str, key):
     try:
         producto = db_client.local.productos.find_one({field : key})
         return Productos(**producto_schema(producto))
     except :
-        return {"error" : "No se encontró el usuario"}
+        return {"error" : "No se encontró el producto"}
+    
+def buscardb_categoria(field : str, key):
+    try:
+        productos_buscar = db_client.local.productos.find({field: key})
+        productos = [producto_schema(producto) for producto in productos_buscar]
+        if productos:
+            return productos
+        else:
+            return {"error": "No se encontraron productos de esa categoría."}
+    except:
+        return {"error": "No se encontraron productos de esa categoría."}
     
