@@ -1,12 +1,15 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from pydantic import BaseModel
-from datetime import datetime, timedelta, date, time
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import jwt, JWTError
-from passlib.context import CryptContext
 from db.client import db_client
 from schemas.productos import producto_schema, productos_schema
 from bson import ObjectId
+from routers import users
+from routers.users import auth_user
+
+app = FastAPI()
+
+#ROUTERS
+app.include_router(users.router)
 
 class Productos(BaseModel):
     id : str | None
@@ -16,8 +19,7 @@ class Productos(BaseModel):
     categoria : str
     stock : int
 
-app = FastAPI()
-
+#ENDPOINTS
 #LISTAR PRODUCTOS
 @app.get("/productos")
 async def productos():
@@ -100,7 +102,7 @@ def buscardb(field : str, key):
         producto = db_client.local.productos.find_one({field : key})
         return Productos(**producto_schema(producto))
     except :
-        return {"error" : "No se encontró el producto"}
+        return {"error": "No se encontraron productos."}
     
 def buscardb_categoria(field : str, key):
     try:
