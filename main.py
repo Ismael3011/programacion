@@ -65,22 +65,22 @@ async def actualizar_producto(producto: Productos, user: UserDB = Depends(auth_u
     return buscardb("_id", ObjectId(producto.id))
 #BUSCAR POR ID
 @app.get("/productos/{id}")
-async def producto(id :str):
+async def producto(id :str, user: UserDB = Depends(auth_user)):
     return buscardb("_id", ObjectId(id))
 
 #BUSCAR POR NOMBRE
 @app.get("/buscar")
-async def producto(nombre :str):
+async def producto(nombre :str, user: UserDB = Depends(auth_user)):
     return buscardb("nombre", nombre)
 
 # BUSCAR PRODUCTOS POR CATEGORÍA
 @app.get("/productos/categoria/{categoria}")
-async def productos_por_categoria(categoria: str):
+async def productos_por_categoria(categoria: str, user: UserDB = Depends(auth_user)):
     return buscardb_categoria("categoria", categoria)
     
 # ORDENAR PRODUCTOS POR PRECIO
 @app.get("/ordenar")
-async def ordenar_productos(orden: str):
+async def ordenar_productos(orden: str, user: UserDB = Depends(auth_user)):
     if orden == "ascendente":
         ordenados = db_client.local.productos.find().sort("precio", 1)
     elif orden =="descendente":
