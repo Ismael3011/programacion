@@ -1,3 +1,4 @@
+#LIBRERIAS
 from fastapi import FastAPI, HTTPException, status, Depends, APIRouter
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -7,15 +8,15 @@ from passlib.context import CryptContext
 from db.client import db_client
 from schemas.users import user_schema, users_schema
 
-
+#VARIABLES
 router = APIRouter()
 ALGORITHM = "HS256"
 ACCES_TOKEN_DURATION = 5
 SECRET = "183c0ed4e2210e4c3ff66c0d0227ea362592cf2dfb4bb1e58f375b3ddfbef3c5"
 oauth2 = OAuth2PasswordBearer(tokenUrl="login")
-
 crypt = CryptContext(schemes=["bcrypt"])
 
+#CLASES
 class User(BaseModel):
     id : str | None
     username: str
@@ -24,6 +25,7 @@ class User(BaseModel):
 class UserDB(User):
     password: str
 
+#FUNCIONES
 async def auth_user(token:str= Depends(oauth2)):
     try:
         username = jwt.decode(token, SECRET, algorithms=[ALGORITHM]).get("sub")
@@ -35,9 +37,7 @@ async def auth_user(token:str= Depends(oauth2)):
     
     return search_user(username)
 
-#async def current_user(user : UserDB = Depends (auth_user)):
-#   return user
-
+#ENDPOINTS
 @router.get("/users")
 async def user():
     return users_schema(db_client.local.users.find())
